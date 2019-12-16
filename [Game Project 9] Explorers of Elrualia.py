@@ -1,15 +1,23 @@
 import pygame
+from pygame.locals import *
+
 import os
+from os import path
+
+import pytmx
 
 """
     Settings
 """
-# Game Settings
+# Main Settings
 project_title = "Explorers of Elrualia"
-screen_size = WIDTH, HEIGHT = 800, 600
+screen_size = WIDTH, HEIGHT = 800, 640
 FPS = 60
 
-
+# Secondary Settings
+TILESIZE    = 32
+GRIDWIDTH   = WIDTH  / TILESIZE
+GRIDHEIGHT  = HEIGHT / TILESIZE
 
 """
     Colors
@@ -27,11 +35,11 @@ LIGHTGREY = 100, 100, 100
 BLACK = 0, 0, 0
 WHITE = 255, 255, 255
 
-
-
 """
     Helpful Functions
 """
+
+
 def update_time_dependent(sprite):
     sprite.current_time += sprite.dt
     if sprite.current_time >= sprite.animation_time:
@@ -83,10 +91,11 @@ def load_tile_table(filename, width, height, colorkey=(0, 0, 0)):
     return tile_table
 
 
-
 """
     Game
 """
+
+
 class Game:
     def __init__(self):
         pygame.mixer.pre_init(44100, -16, 2, 2048)
@@ -127,10 +136,10 @@ class Game:
         game_folder = path.dirname(__file__)
         data_folder = path.join(game_folder, "data")
         graphics_folder = path.join(data_folder, "graphics")
-        map_folder = path.join(data_folder, "map")
         sfx_folder = path.join(data_folder, "sfx")
         voice_folder = path.join(data_folder, "voice")
         music_folder = path.join(data_folder, "music")
+        map_folder = path.join(data_folder, "map")
 
         # Font
         self.font = None
@@ -139,9 +148,13 @@ class Game:
         self.dim_screen = pygame.Surface(self.gameDisplay.get_size()).convert_alpha()
         self.dim_screen.fill((100, 100, 100, 120))
 
+        # Map
         self.map = Map(path.join(map_folder, "Map_1.tmx"))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
+
+        # Music
+        self.music = "music_aaron_krogh_310_world_map.mp3"
 
         # Image Items
         self.item_images = {}
@@ -156,7 +169,7 @@ class Game:
         self.sounds_voice = {}
 
         # Sound Musics
-        pygame.mixer.music.load(path.join(music_folder, BG_MUSIC))
+        pygame.mixer.music.load(path.join(music_folder, self.music))
 
     def new(self):
         self.paused = False
@@ -194,7 +207,14 @@ class Game:
         if self.paused:
             self.gameDisplay.blit(self.dim_screen, (0, 0))
             self.draw_text("Paused", self.font, 105, RED, WIDTH / 2, HEIGHT / 2, align="center")
+
+        # Draw Grid
+        for col in range(WIDTH // TILESIZE):
+            for row in range(HEIGHT // TILESIZE):
+                pygame.draw.rect(self.gameDisplay, (100, 100, 100), (TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE), 1)
+
         self.gameDisplay.update()
+
 
 
 class ScaledGame(pygame.Surface):
@@ -316,6 +336,30 @@ class ScaledGame(pygame.Surface):
 
         pygame.display.flip()
         self.clock.tick(self.FPS)
+
+
+"""
+    Others Functions
+"""
+class Map:
+    def __init__(self, filename):
+        self.tmxdata = pytmx.load_pygame(filename, pixelalpha=True)
+        self.width = self.tmxdata.width * self.tmxdata.tilewidth
+        self.height = self.tmxdata.height * self.tmxdata.tileheight
+
+    def render(self, surface):
+        ti = self.tmxdata.get_tile_image_by_gid
+        for layer in self.tmxdata.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    tile = ti(gid)
+                    if tile:
+                        surface.blit(tile, (x * self.tmxdata.tilewidth, y * self.tmxdata.tileheight))
+
+    def make_map(self):
+        temp_surface = pygame.Surface((self.width, self.height))
+        self.render(temp_surface)
+        return temp_surface
 
 
 g = Game()
