@@ -1,10 +1,9 @@
 import pygame
 from pygame.locals import *
-
 import os
 from os import path
-
 import pytmx
+vec = pygame.math.Vector2
 
 """
     Settings
@@ -15,9 +14,15 @@ screen_size = WIDTH, HEIGHT = 800, 640
 FPS = 60
 
 # Secondary Settings
-TILESIZE    = 32
-GRIDWIDTH   = WIDTH  / TILESIZE
-GRIDHEIGHT  = HEIGHT / TILESIZE
+TILESIZE = 32
+GRIDWIDTH = WIDTH / TILESIZE
+GRIDHEIGHT = HEIGHT / TILESIZE
+
+# Game Settings
+PLAYER_SPEED = 300
+
+# Layer Settings
+LAYER_PLAYER = 1
 
 """
     Colors
@@ -36,8 +41,60 @@ BLACK = 0, 0, 0
 WHITE = 255, 255, 255
 
 """
+    Helpful Classes
+"""
+class Camera:
+    def __init__(self, width, height):
+        self.camera = pygame.Rect(0, 0, width, height)
+        self.width = width
+        self.height = height
+
+    def apply(self, entity):
+        return entity.rect.move(self.camera.topleft)
+
+    def apply_rect(self, rect):
+        return rect.move(self.camera.topleft)
+
+    def update(self, target):
+        x = -target.rect.centerx + int(WIDTH / 2)
+        y = -target.rect.centery + int(HEIGHT / 2)
+
+        # Limit to map size
+        x = min(0, x)  # Left
+        x = max(-(self.width - WIDTH), x)  # Right
+        y = min(0, y)  # Top
+        y = max(-(self.height - HEIGHT), y)  # Bottom
+        self.camera = pygame.Rect(x, y, self.width, self.height)
+
+
+class Map:
+    def __init__(self, filename):
+        self.tmxdata = pytmx.load_pygame(filename, pixelalpha=True)
+        self.width = self.tmxdata.width * self.tmxdata.tilewidth
+        self.height = self.tmxdata.height * self.tmxdata.tileheight
+
+    def render(self, surface):
+        ti = self.tmxdata.get_tile_image_by_gid
+        for layer in self.tmxdata.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    tile = ti(gid)
+                    if tile:
+                        surface.blit(tile, (x * self.tmxdata.tilewidth, y * self.tmxdata.tileheight))
+
+    def make_map(self):
+        temp_surface = pygame.Surface((self.width, self.height))
+        self.render(temp_surface)
+        return temp_surface
+
+
+"""
     Helpful Functions
 """
+def draw_grid(gameDisplay, width, height, tile_w, tile_h):
+    for col in range(width // tile_w):
+        for row in range(height // tile_h):
+            pygame.draw.rect(gameDisplay, (100, 100, 100), (tile_w * col, tile_h * row, tile_w, tile_h), 1)
 
 
 def update_time_dependent(sprite):
@@ -94,8 +151,6 @@ def load_tile_table(filename, width, height, colorkey=(0, 0, 0)):
 """
     Game
 """
-
-
 class Game:
     def __init__(self):
         pygame.mixer.pre_init(44100, -16, 2, 2048)
@@ -173,7 +228,13 @@ class Game:
 
     def new(self):
         self.paused = False
+        self.camera = Camera(self.map.width, self.map.height)
         self.all_sprites = pygame.sprite.LayeredUpdates()
+
+        for tile_object in self.map.tmxdata.objects:
+            obj_center = vec(tile_object.x + tile_object.width/2, tile_object.y + tile_object.height/2)
+            if tile_object.name == "player":
+                self.player = Player(self, obj_center.x, obj_center.y)
 
     def run(self):
         self.playing = True
@@ -202,19 +263,24 @@ class Game:
 
     def update(self):
         self.all_sprites.update()
+        self.camera.update(self.player)
 
     def draw(self):
+        # Map
+        self.gameDisplay.blit(self.map_img, self.camera.apply_rect(self.map_rect))
+        draw_grid(self.gameDisplay, WIDTH, HEIGHT, TILESIZE, TILESIZE)
+
+        # Sprite
+        for sprite in self.all_sprites:
+            self.gameDisplay.blit(sprite.image, self.camera.apply(sprite))
+
+        # Pause
         if self.paused:
             self.gameDisplay.blit(self.dim_screen, (0, 0))
             self.draw_text("Paused", self.font, 105, RED, WIDTH / 2, HEIGHT / 2, align="center")
 
-        # Draw Grid
-        for col in range(WIDTH // TILESIZE):
-            for row in range(HEIGHT // TILESIZE):
-                pygame.draw.rect(self.gameDisplay, (100, 100, 100), (TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE), 1)
 
         self.gameDisplay.update()
-
 
 
 class ScaledGame(pygame.Surface):
@@ -341,25 +407,51 @@ class ScaledGame(pygame.Surface):
 """
     Others Functions
 """
-class Map:
-    def __init__(self, filename):
-        self.tmxdata = pytmx.load_pygame(filename, pixelalpha=True)
-        self.width = self.tmxdata.width * self.tmxdata.tilewidth
-        self.height = self.tmxdata.height * self.tmxdata.tileheight
+class Player(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        # Setup
+        self.game = game
+        self.groups = self.game.all_sprites
+        self._layer = LAYER_PLAYER
+        pygame.sprite.Sprite.__init__(self, self.groups)
 
-    def render(self, surface):
-        ti = self.tmxdata.get_tile_image_by_gid
-        for layer in self.tmxdata.visible_layers:
-            if isinstance(layer, pytmx.TiledTileLayer):
-                for x, y, gid in layer:
-                    tile = ti(gid)
-                    if tile:
-                        surface.blit(tile, (x * self.tmxdata.tilewidth, y * self.tmxdata.tileheight))
+        # Position
+        self.pos = vec(x, y)
+        self.vel = vec(0, 0)
+        self.moving = False
 
-    def make_map(self):
-        temp_surface = pygame.Surface((self.width, self.height))
-        self.render(temp_surface)
-        return temp_surface
+        # Surface
+        self.image = pygame.Surface((TILESIZE, TILESIZE))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        #self.rect.center = self.pos
+
+
+    def get_keys(self):
+        keys = pygame.key.get_pressed()
+
+        # Movement
+        self.vel = vec(0, 0)
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.vel.x = -PLAYER_SPEED
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.vel.x = +PLAYER_SPEED
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            self.vel.y = -PLAYER_SPEED
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.vel.y = +PLAYER_SPEED
+        if self.vel.x != 0 and self.vel.y != 0:
+            self.vel *= 0.7071
+        self.moving = (self.vel.x != 0 or self.vel.y != 0)
+
+    def update(self):
+        # Keys
+        self.get_keys()
+
+        # Position
+        self.pos += self.vel * self.game.dt
+        self.rect = self.image.get_rect()
+        #self.rect.center = self.pos
 
 
 g = Game()
