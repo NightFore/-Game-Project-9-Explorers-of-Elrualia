@@ -148,6 +148,14 @@ def load_tile_table(filename, width, height, colorkey=(0, 0, 0)):
     return tile_table
 
 
+def transparent_surface(width, height, color, border, colorkey=(0, 0, 0)):
+    surface = pygame.Surface((width, height)).convert()
+    surface.set_colorkey(colorkey)
+    surface.fill(color)
+    surface.fill(colorkey, surface.get_rect().inflate(-border, -border))
+    return surface
+
+
 """
     Game
 """
@@ -421,11 +429,10 @@ class Player(pygame.sprite.Sprite):
         self.moving = False
 
         # Surface
-        self.image = pygame.Surface((TILESIZE, TILESIZE))
-        self.image.fill(RED)
+        self.image = transparent_surface(TILESIZE, TILESIZE, YELLOW, 6)
         self.rect = self.image.get_rect()
-        #self.rect.center = self.pos
-
+        self.rect.centerx = int(self.pos.x)
+        self.rect.centery = int(self.pos.y)
 
     def get_keys(self):
         keys = pygame.key.get_pressed()
@@ -451,7 +458,8 @@ class Player(pygame.sprite.Sprite):
         # Position
         self.pos += self.vel * self.game.dt
         self.rect = self.image.get_rect()
-        #self.rect.center = self.pos
+        self.rect.centerx = int(self.pos.x)
+        self.rect.centery = int(self.pos.y)
 
 
 g = Game()
