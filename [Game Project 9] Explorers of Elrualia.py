@@ -191,6 +191,7 @@ class Game:
         self.paused = False
         self.camera = Camera(self.map.width, self.map.height, WIDTH, HEIGHT)
         self.all_sprites = pygame.sprite.LayeredUpdates()
+        self.characters = pygame.sprite.Group()
 
         self.cursor = Cursor(self, 0, 0)
         for tile_object in self.map.tmxdata.objects:
@@ -199,6 +200,8 @@ class Game:
                 self.cursor = Cursor(self, obj_center.x, obj_center.y)
             if tile_object.name == "player":
                 self.player = Player(self, obj_center.x, obj_center.y)
+
+
 
     def run(self):
         self.playing = True
@@ -234,6 +237,9 @@ class Game:
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                     self.cursor.move(dy=+1)
 
+                if event.key == pygame.K_h:
+                    self.cursor.action()
+
     def update(self):
         self.all_sprites.update()
         self.camera.update(self.cursor)
@@ -245,8 +251,7 @@ class Game:
         # Grid
         for col in range(self.map.width // TILESIZE):
             for row in range(self.map.height // TILESIZE):
-                pygame.draw.rect(self.gameDisplay, (100, 100, 100), self.camera.apply_rect(
-                    pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
+                pygame.draw.rect(self.gameDisplay, (100, 100, 100), self.camera.apply_rect(pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
 
         # Sprite
         for sprite in self.all_sprites:
@@ -263,8 +268,6 @@ class Game:
 """
     Others Functions
 """
-
-
 class Cursor(pygame.sprite.Sprite):
     def __init__(self, game, x, y):
         # Setup
@@ -273,30 +276,67 @@ class Cursor(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, self.groups)
 
         # Position
-        self.x = int(x / TILESIZE)
-        self.y = int(y / TILESIZE)
+        self.pos = [int(x / TILESIZE), int(y / TILESIZE)]
 
         # Surface
         self.image = transparent_surface(TILESIZE, TILESIZE, YELLOW, 6)
         self.rect = self.image.get_rect()
-        self.rect.x = self.x * TILESIZE
-        self.rect.y = self.y * TILESIZE
+        self.rect.x = self.pos[0] * TILESIZE
+        self.rect.y = self.pos[1] * TILESIZE
+
+        # Action
+        self.select = False
+        self.selection = None
 
     def move(self, dx=0, dy=0):
-        self.x += dx
-        self.y += dy
+        self.pos[0] += dx
+        self.pos[1] += dy
+
+    def action(self):
+        if not self.select:
+            for sprite in self.game.characters:
+                if sprite.pos == self.pos:
+                    self.selection = Selection(self.game, self.pos[0]*TILESIZE, self.pos[1]*TILESIZE)
+        else:
+            self.selection.kill()
+
+        self.select = not self.select
+
 
     def update(self):
         # Position
-        self.rect.x = self.x * TILESIZE
-        self.rect.y = self.y * TILESIZE
+        self.rect.x = self.pos[0] * TILESIZE
+        self.rect.y = self.pos[1] * TILESIZE
+
+
+class Selection(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        # Setup
+        self.game = game
+        self.groups = self.game.all_sprites
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        # Position
+        self.pos = [x, y]
+
+        # Surface
+        self.image = pygame.Surface((TILESIZE, TILESIZE)).convert()
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.pos[0]
+        self.rect.y = self.pos[1]
+
+    def update(self):
+        # Position
+        self.rect.x = self.pos[0]
+        self.rect.y = self.pos[1]
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, game, x, y):
         # Setup
         self.game = game
-        self.groups = self.game.all_sprites
+        self.groups = self.game.all_sprites, self.game.characters
         pygame.sprite.Sprite.__init__(self, self.groups)
 
         # Position
