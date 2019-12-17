@@ -91,12 +91,6 @@ class Map:
 """
     Helpful Functions
 """
-def draw_grid(gameDisplay, width, height, tile_w, tile_h):
-    for col in range(width // tile_w):
-        for row in range(height // tile_h):
-            pygame.draw.rect(gameDisplay, (100, 100, 100), (tile_w * col, tile_h * row, tile_w, tile_h), 1)
-
-
 def update_time_dependent(sprite):
     sprite.current_time += sprite.dt
     if sprite.current_time >= sprite.animation_time:
@@ -269,6 +263,15 @@ class Game:
                 if event.key == pygame.K_p:
                     self.paused = not self.paused
 
+                if event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                    self.player.move(dx=-1)
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    self.player.move(dx=+1)
+                if event.key == pygame.K_UP or event.key == pygame.K_w:
+                    self.player.move(dy=-1)
+                if event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    self.player.move(dy=+1)
+
     def update(self):
         self.all_sprites.update()
         self.camera.update(self.player)
@@ -276,7 +279,11 @@ class Game:
     def draw(self):
         # Map
         self.gameDisplay.blit(self.map_img, self.camera.apply_rect(self.map_rect))
-        draw_grid(self.gameDisplay, WIDTH, HEIGHT, TILESIZE, TILESIZE)
+
+        # Grid
+        for col in range(WIDTH // TILESIZE):
+            for row in range(HEIGHT // TILESIZE):
+                pygame.draw.rect(self.gameDisplay, (100, 100, 100), self.camera.apply_rect(pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
 
         # Sprite
         for sprite in self.all_sprites:
@@ -424,42 +431,23 @@ class Player(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, self.groups)
 
         # Position
-        self.pos = vec(x, y)
-        self.vel = vec(0, 0)
-        self.moving = False
+        self.x = int(x/TILESIZE)
+        self.y = int(y/TILESIZE)
 
         # Surface
         self.image = transparent_surface(TILESIZE, TILESIZE, YELLOW, 6)
         self.rect = self.image.get_rect()
-        self.rect.centerx = int(self.pos.x)
-        self.rect.centery = int(self.pos.y)
+        self.rect.x = self.x
+        self.rect.y = self.y
 
-    def get_keys(self):
-        keys = pygame.key.get_pressed()
-
-        # Movement
-        self.vel = vec(0, 0)
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.vel.x = -PLAYER_SPEED
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.vel.x = +PLAYER_SPEED
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.vel.y = -PLAYER_SPEED
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.vel.y = +PLAYER_SPEED
-        if self.vel.x != 0 and self.vel.y != 0:
-            self.vel *= 0.7071
-        self.moving = (self.vel.x != 0 or self.vel.y != 0)
+    def move(self, dx=0, dy=0):
+        self.x += dx
+        self.y += dy
 
     def update(self):
-        # Keys
-        self.get_keys()
-
         # Position
-        self.pos += self.vel * self.game.dt
-        self.rect = self.image.get_rect()
-        self.rect.centerx = int(self.pos.x)
-        self.rect.centery = int(self.pos.y)
+        self.rect.x = self.x * TILESIZE
+        self.rect.y = self.y * TILESIZE
 
 
 g = Game()
