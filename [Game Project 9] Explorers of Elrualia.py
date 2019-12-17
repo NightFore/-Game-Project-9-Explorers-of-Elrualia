@@ -22,11 +22,7 @@ TILESIZE = 32
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 
-# Game Settings
-PLAYER_SPEED = 300
-
-# Layer Settings
-LAYER_PLAYER = 1
+PLAYER_IMG = "character_pipoya_male_01_2.png"
 
 """
     Colors
@@ -44,10 +40,11 @@ LIGHTGREY = 100, 100, 100
 BLACK = 0, 0, 0
 WHITE = 255, 255, 255
 
-
 """
     Helpful Functions
 """
+
+
 def update_time_dependent(sprite):
     sprite.current_time += sprite.dt
     if sprite.current_time >= sprite.animation_time:
@@ -110,6 +107,8 @@ def transparent_surface(width, height, color, border, colorkey=(0, 0, 0)):
 """
     Game
 """
+
+
 class Game:
     def __init__(self):
         pygame.mixer.pre_init(44100, -16, 2, 2048)
@@ -167,6 +166,9 @@ class Game:
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
 
+        # Characters
+        self.player_img = load_tile_table(path.join(graphics_folder, PLAYER_IMG), 32, 32)
+
         # Music
         self.music = "music_aaron_krogh_310_world_map.mp3"
 
@@ -190,8 +192,11 @@ class Game:
         self.camera = Camera(self.map.width, self.map.height, WIDTH, HEIGHT)
         self.all_sprites = pygame.sprite.LayeredUpdates()
 
+        self.cursor = Cursor(self, 0, 0)
         for tile_object in self.map.tmxdata.objects:
-            obj_center = vec(tile_object.x + tile_object.width/2, tile_object.y + tile_object.height/2)
+            obj_center = vec(tile_object.x + tile_object.width / 2, tile_object.y + tile_object.height / 2)
+            if tile_object.name == "cursor":
+                self.cursor = Cursor(self, obj_center.x, obj_center.y)
             if tile_object.name == "player":
                 self.player = Player(self, obj_center.x, obj_center.y)
 
@@ -221,26 +226,27 @@ class Game:
                     self.paused = not self.paused
 
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                    self.player.move(dx=-1)
+                    self.cursor.move(dx=-1)
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                    self.player.move(dx=+1)
+                    self.cursor.move(dx=+1)
                 if event.key == pygame.K_UP or event.key == pygame.K_w:
-                    self.player.move(dy=-1)
+                    self.cursor.move(dy=-1)
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                    self.player.move(dy=+1)
+                    self.cursor.move(dy=+1)
 
     def update(self):
         self.all_sprites.update()
-        self.camera.update(self.player)
+        self.camera.update(self.cursor)
 
     def draw(self):
         # Map
         self.gameDisplay.blit(self.map_img, self.camera.apply_rect(self.map_rect))
 
         # Grid
-        for col in range(WIDTH // TILESIZE):
-            for row in range(HEIGHT // TILESIZE):
-                pygame.draw.rect(self.gameDisplay, (100, 100, 100), self.camera.apply_rect(pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
+        for col in range(self.map.width // TILESIZE):
+            for row in range(self.map.height // TILESIZE):
+                pygame.draw.rect(self.gameDisplay, (100, 100, 100), self.camera.apply_rect(
+                    pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
 
         # Sprite
         for sprite in self.all_sprites:
@@ -257,23 +263,24 @@ class Game:
 """
     Others Functions
 """
-class Player(pygame.sprite.Sprite):
+
+
+class Cursor(pygame.sprite.Sprite):
     def __init__(self, game, x, y):
         # Setup
         self.game = game
         self.groups = self.game.all_sprites
-        self._layer = LAYER_PLAYER
         pygame.sprite.Sprite.__init__(self, self.groups)
 
         # Position
-        self.x = int(x/TILESIZE)
-        self.y = int(y/TILESIZE)
+        self.x = int(x / TILESIZE)
+        self.y = int(y / TILESIZE)
 
         # Surface
         self.image = transparent_surface(TILESIZE, TILESIZE, YELLOW, 6)
         self.rect = self.image.get_rect()
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect.x = self.x * TILESIZE
+        self.rect.y = self.y * TILESIZE
 
     def move(self, dx=0, dy=0):
         self.x += dx
@@ -283,6 +290,43 @@ class Player(pygame.sprite.Sprite):
         # Position
         self.rect.x = self.x * TILESIZE
         self.rect.y = self.y * TILESIZE
+
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, game, x, y):
+        # Setup
+        self.game = game
+        self.groups = self.game.all_sprites
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        # Position
+        self.pos = [int(x / TILESIZE), int(y / TILESIZE)]
+
+        # Surface
+        self.base_index = 1
+        self.index = self.base_index
+        self.images = self.game.player_img
+        self.images_bottom = self.images[0]
+        self.images_left = self.images[1]
+        self.images_right = self.images[2]
+        self.images_top = self.images[3]
+        self.images = self.images_bottom
+        self.image = self.images_bottom[self.index]
+
+        self.rect = self.image.get_rect()
+        self.rect.x = self.pos[0] * TILESIZE
+        self.rect.y = self.pos[1] * TILESIZE
+
+        self.dt = game.dt
+        self.current_time = 0
+        self.animation_time = 0.50
+
+    def update(self):
+        update_time_dependent(self)
+        self.current_time += self.dt
+
+        self.rect.x = self.pos[0] * TILESIZE
+        self.rect.y = self.pos[1] * TILESIZE
 
 
 g = Game()

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.4" orientation="orthogonal" renderorder="left-up" width="40" height="24" tilewidth="32" tileheight="32" infinite="0" nextlayerid="47" nextobjectid="14">
+<map version="1.2" tiledversion="1.3.1" orientation="orthogonal" renderorder="left-up" compressionlevel="0" width="40" height="24" tilewidth="32" tileheight="32" infinite="0" nextlayerid="47" nextobjectid="16">
  <tileset firstgid="1" source="../Tilesheet/[Base]BaseChip_pipo.tsx"/>
  <tileset firstgid="1065" name="[Base]BaseChip_pipo" tilewidth="32" tileheight="32" tilecount="1064" columns="8">
   <image source="../Tilesheet/[Base]BaseChip_pipo.png" width="256" height="4256"/>
@@ -123,5 +123,6 @@
   <object id="11" name="mob" x="864" y="576" width="32" height="32"/>
   <object id="12" name="mob" x="928" y="576" width="32" height="32"/>
   <object id="13" name="heart" x="352" y="352" width="32" height="32"/>
+  <object id="15" name="cursor" x="352" y="448" width="32" height="32"/>
  </objectgroup>
 </map>
