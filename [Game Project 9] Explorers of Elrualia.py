@@ -23,6 +23,7 @@ GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 
 PLAYER_IMG = "character_pipoya_male_01_2.png"
+PLAYER_MOVEMENT = 2
 
 # Layer Settings
 LAYER_CURSOR = 3
@@ -206,8 +207,6 @@ class Game:
             if tile_object.name == "player":
                 self.player = Player(self, obj_center.x, obj_center.y)
 
-
-
     def run(self):
         self.playing = True
         pygame.mixer.music.play(-1)
@@ -252,6 +251,20 @@ class Game:
     def draw(self):
         # Map
         self.gameDisplay.blit(self.map_img, self.camera.apply_rect(self.map_rect))
+
+        # Selection
+        # [0, 0, 1, 0, 0],
+        # [0, 1, 1, 1, 0],
+        # [1, 1, 1, 1, 1],
+        # [0, 1, 1, 1, 0],
+        # [0, 0, 1, 0, 0]]
+        if self.cursor.selection.alive():
+            pos = self.cursor.selection.pos
+            mov = self.cursor.selection.sprite.movement
+            for i in range(-mov, mov+1):
+                for j in range(-mov, mov+1):
+                    if abs(i) + abs(j) <= mov:
+                        pygame.draw.rect(self.gameDisplay, RED, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
 
         # Grid
         for col in range(self.map.width // TILESIZE):
@@ -301,7 +314,7 @@ class Cursor(pygame.sprite.Sprite):
         if not self.selection.alive():
             for sprite in self.game.characters:
                 if sprite.pos == self.pos:
-                    self.selection = Selection(self.game, self.pos[0]*TILESIZE, self.pos[1]*TILESIZE)
+                    self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1])
         else:
             self.selection.kill()
 
@@ -311,28 +324,32 @@ class Cursor(pygame.sprite.Sprite):
         self.rect.y = self.pos[1] * TILESIZE
 
 
+
 class Selection(pygame.sprite.Sprite):
-    def __init__(self, game, x, y):
+    def __init__(self, game, sprite, x, y):
         # Setup
         self.game = game
         self.groups = self.game.all_sprites
         self._layer = LAYER_SELECTION
         pygame.sprite.Sprite.__init__(self, self.groups)
 
+        # Settings
+        self.sprite = sprite
+
         # Position
         self.pos = [x, y]
 
         # Surface
         self.image = pygame.Surface((TILESIZE, TILESIZE)).convert()
-        self.image.fill(RED)
+        self.image.fill(BLUE)
         self.rect = self.image.get_rect()
-        self.rect.x = self.pos[0]
-        self.rect.y = self.pos[1]
+        self.rect.x = self.pos[0]*TILESIZE
+        self.rect.y = self.pos[1]*TILESIZE
 
     def update(self):
         # Position
-        self.rect.x = self.pos[0]
-        self.rect.y = self.pos[1]
+        self.rect.x = self.pos[0]*TILESIZE
+        self.rect.y = self.pos[1]*TILESIZE
 
 
 class Player(pygame.sprite.Sprite):
@@ -342,6 +359,9 @@ class Player(pygame.sprite.Sprite):
         self.groups = self.game.all_sprites, self.game.characters
         self._layer = LAYER_PLAYER
         pygame.sprite.Sprite.__init__(self, self.groups)
+
+        # Settings
+        self.movement = PLAYER_MOVEMENT
 
         # Position
         self.pos = [int(x / TILESIZE), int(y / TILESIZE)]
