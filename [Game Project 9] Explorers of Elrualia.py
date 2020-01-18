@@ -194,6 +194,7 @@ class Game:
         pygame.mixer.music.load(path.join(music_folder, self.music))
 
     def new(self):
+        self.debug_obstacle = False
         self.paused = False
         self.camera = Camera(self.map.width, self.map.height, WIDTH, HEIGHT)
         self.all_sprites = pygame.sprite.LayeredUpdates()
@@ -247,6 +248,9 @@ class Game:
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                     self.cursor.move(dy=+1)
 
+                if event.key == pygame.K_j:
+                    self.debug_obstacle = not self.debug_obstacle
+
                 if event.key == pygame.K_h:
                     self.cursor.action()
 
@@ -275,11 +279,15 @@ class Game:
         # Grid
         for col in range(self.map.width // TILESIZE):
             for row in range(self.map.height // TILESIZE):
-                pygame.draw.rect(self.gameDisplay, (100, 100, 100), self.camera.apply_rect(pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
+                pygame.draw.rect(self.gameDisplay, LIGHTGREY, self.camera.apply_rect(pygame.Rect(TILESIZE * col, TILESIZE * row, TILESIZE, TILESIZE)), 1)
 
         # Sprite
         for sprite in self.all_sprites:
             self.gameDisplay.blit(sprite.image, self.camera.apply(sprite))
+
+        if self.debug_obstacle:
+            for obstacle in self.obstacle:
+                pygame.draw.rect(self.gameDisplay, CYAN, self.camera.apply_rect(obstacle.rect), 1)
 
         # Pause
         if self.paused:
