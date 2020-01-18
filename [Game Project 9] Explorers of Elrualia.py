@@ -198,14 +198,20 @@ class Game:
         self.camera = Camera(self.map.width, self.map.height, WIDTH, HEIGHT)
         self.all_sprites = pygame.sprite.LayeredUpdates()
         self.characters = pygame.sprite.Group()
+        self.obstacle = pygame.sprite.Group()
 
-        self.cursor = Cursor(self, 0, 0)
+        for tile_layer in self.map.tmxdata.layers:
+            if tile_layer.name == "collision":
+                for x, y, image in tile_layer.tiles():
+                    Obstacle(self, x, y, self.map.tmxdata.tilewidth, self.map.tmxdata.tileheight)
+
         for tile_object in self.map.tmxdata.objects:
             obj_center = vec(tile_object.x + tile_object.width / 2, tile_object.y + tile_object.height / 2)
             if tile_object.name == "cursor":
                 self.cursor = Cursor(self, obj_center.x, obj_center.y)
             if tile_object.name == "player":
                 self.player = Player(self, obj_center.x, obj_center.y)
+
 
     def run(self):
         self.playing = True
@@ -309,24 +315,30 @@ class Cursor(pygame.sprite.Sprite):
     def move(self, dx=0, dy=0):
         self.pos[0] += dx
         self.pos[1] += dy
+        self.rect.x = self.pos[0] * TILESIZE
+        self.rect.y = self.pos[1] * TILESIZE
+
+        if pygame.sprite.spritecollide(self, self.game.obstacle, False):
+            self.pos[0] -= dx
+            self.pos[1] -= dy
+            self.rect.x = self.pos[0] * TILESIZE
+            self.rect.y = self.pos[1] * TILESIZE
 
     def action(self):
         if not self.selection.alive():
             for sprite in self.game.characters:
                 if sprite.pos == self.pos:
-                    self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1])
+                    self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1], TILESIZE, TILESIZE)
         else:
             self.selection.kill()
 
     def update(self):
-        # Position
-        self.rect.x = self.pos[0] * TILESIZE
-        self.rect.y = self.pos[1] * TILESIZE
+        pass
 
 
 
 class Selection(pygame.sprite.Sprite):
-    def __init__(self, game, sprite, x, y):
+    def __init__(self, game, sprite, x, y, w, h):
         # Setup
         self.game = game
         self.groups = self.game.all_sprites
@@ -336,20 +348,31 @@ class Selection(pygame.sprite.Sprite):
         # Settings
         self.sprite = sprite
 
-        # Position
-        self.pos = [x, y]
-
         # Surface
         self.image = pygame.Surface((TILESIZE, TILESIZE)).convert()
         self.image.fill(BLUE)
-        self.rect = self.image.get_rect()
-        self.rect.x = self.pos[0]*TILESIZE
-        self.rect.y = self.pos[1]*TILESIZE
 
-    def update(self):
         # Position
-        self.rect.x = self.pos[0]*TILESIZE
-        self.rect.y = self.pos[1]*TILESIZE
+        self.rect = self.image.get_rect()
+        self.pos = [x, y]
+        self.rect.x = self.pos[0]*w
+        self.rect.y = self.pos[1]*h
+
+
+
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self, game, x, y, w, h):
+        # Setup
+        self.game = game
+        self.groups = self.game.obstacle
+        pygame.sprite.Sprite.__init__(self, self.groups)
+
+        # Position
+        self.rect = pygame.Rect(x, y, w, h)
+        self.pos = [x, y]
+        self.rect.x = self.pos[0]*w
+        self.rect.y = self.pos[1]*h
+
 
 
 class Player(pygame.sprite.Sprite):
@@ -391,7 +414,6 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.x = self.pos[0] * TILESIZE
         self.rect.y = self.pos[1] * TILESIZE
-
 
 g = Game()
 while True:
