@@ -110,6 +110,22 @@ def transparent_surface(width, height, color, border, colorkey=(0, 0, 0)):
     return surface
 
 
+
+def collision(sprite, dx=0, dy=0):
+    sprite.pos[0] += dx
+    sprite.pos[1] += dy
+    sprite.rect.x = sprite.pos[0] * TILESIZE
+    sprite.rect.y = sprite.pos[1] * TILESIZE
+    collide = pygame.sprite.spritecollide(sprite, sprite.game.obstacle, False)
+
+    sprite.pos[0] -= dx
+    sprite.pos[1] -= dy
+    sprite.rect.x = sprite.pos[0] * TILESIZE
+    sprite.rect.y = sprite.pos[1] * TILESIZE
+    return collide
+
+
+
 """
     Game
 """
@@ -274,7 +290,7 @@ class Game:
             for i in range(-mov, mov+1):
                 for j in range(-mov, mov+1):
                     if abs(i) + abs(j) <= mov:
-                        if not self.cursor.collision(j, i):
+                        if not collision(self.cursor.selection, j, i):
                             pygame.draw.rect(self.gameDisplay, BLUE, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
 
         # Grid
@@ -322,24 +338,11 @@ class Cursor(pygame.sprite.Sprite):
         self.selection = pygame.sprite.Sprite()
 
     def move(self, dx=0, dy=0):
-        if not self.collision(dx, dy):
+        if not collision(self, dx, dy):
             self.pos[0] += dx
             self.pos[1] += dy
             self.rect.x = self.pos[0] * TILESIZE
             self.rect.y = self.pos[1] * TILESIZE
-
-    def collision(self, dx=0, dy=0):
-        self.pos[0] += dx
-        self.pos[1] += dy
-        self.rect.x = self.pos[0] * TILESIZE
-        self.rect.y = self.pos[1] * TILESIZE
-        collide = pygame.sprite.spritecollide(self, self.game.obstacle, False)
-
-        self.pos[0] -= dx
-        self.pos[1] -= dy
-        self.rect.x = self.pos[0] * TILESIZE
-        self.rect.y = self.pos[1] * TILESIZE
-        return collide
 
     def action(self):
         if not self.selection.alive():
