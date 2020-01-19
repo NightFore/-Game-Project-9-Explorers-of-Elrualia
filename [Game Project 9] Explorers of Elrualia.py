@@ -340,14 +340,11 @@ class Cursor(pygame.sprite.Sprite):
     def move(self, dx=0, dy=0):
         if not collision(self, self.game.obstacle, dx, dy):
             if self.selection.alive() and abs(self.pos[0] + dx - self.selection.pos[0]) + abs(self.pos[1] + dy - self.selection.pos[1])  > self.selection.sprite.movement:
-                dx = 0
-                dy = 0
-
+                dx = dy = 0
             self.pos[0] += dx
             self.pos[1] += dy
             self.rect.x = self.pos[0] * TILESIZE
             self.rect.y = self.pos[1] * TILESIZE
-
 
     def action(self):
         if not self.selection.alive():
@@ -355,6 +352,8 @@ class Cursor(pygame.sprite.Sprite):
                 if sprite.pos == self.pos:
                     self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1], TILESIZE, TILESIZE)
         else:
+            self.selection.sprite.pos[0] = self.pos[0]
+            self.selection.sprite.pos[1] = self.pos[1]
             self.selection.kill()
 
     def update(self):
