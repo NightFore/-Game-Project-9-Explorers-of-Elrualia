@@ -287,11 +287,14 @@ class Game:
         if self.cursor.selection.alive():
             pos = self.cursor.selection.pos
             mov = self.cursor.selection.sprite.movement
+            index_i = index_j = 0
             for i in range(-mov, mov+1):
                 for j in range(-mov, mov+1):
-                    if abs(i) + abs(j) <= mov:
-                        if not collision(self.cursor.selection, self.obstacle, j, i):
-                            pygame.draw.rect(self.gameDisplay, BLUE, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
+                    if self.cursor.selection_mov[index_i][index_j]:
+                        pygame.draw.rect(self.gameDisplay, BLUE, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
+                    index_j += 1
+                index_i += 1
+                index_j = 0
 
         # Grid
         for col in range(self.map.width // TILESIZE):
@@ -336,6 +339,7 @@ class Cursor(pygame.sprite.Sprite):
 
         # Action
         self.selection = pygame.sprite.Sprite()
+        self.selection_mov = [ [] ]
 
     def move(self, dx=0, dy=0):
         if not collision(self, self.game.obstacle, dx, dy):
@@ -351,6 +355,31 @@ class Cursor(pygame.sprite.Sprite):
             for sprite in self.game.characters:
                 if sprite.pos == self.pos:
                     self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1], TILESIZE, TILESIZE)
+
+                    mov = self.selection.sprite.movement
+                    self.selection_mov = [[False] * (mov*2+1) for i in range(mov*2+1)]
+                    index_i = index_j = 0
+                    for i in range(-mov, mov + 1):
+                        for j in range(-mov, mov + 1):
+                            if abs(i) + abs(j) <= mov:
+                                if not collision(self.selection, self.game.obstacle, j, i):
+                                    self.selection_mov[index_i][index_j] = True
+                            index_j += 1
+                        index_i += 1
+                        index_j = 0
+
+                    for i in range(2*mov+1):
+                        for j in range(2*mov+1):
+                            if self.selection_mov[i][j]:
+                                reach = False
+                                for x in range(-1, 1+1):
+                                    for y in range(-1, 1+1):
+                                        if abs(x) + abs(y) == 1 and 0 < i+x < 2*mov+1 and 0 < j+y < 2*mov+1:
+                                            if self.selection_mov[i+x][j+y]:
+                                                reach = True
+                                self.selection_mov[i][j] = reach
+
+
         else:
             self.selection.sprite.pos[0] = self.pos[0]
             self.selection.sprite.pos[1] = self.pos[1]
