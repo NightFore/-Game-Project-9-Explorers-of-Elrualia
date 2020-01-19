@@ -111,17 +111,17 @@ def transparent_surface(width, height, color, border, colorkey=(0, 0, 0)):
 
 
 
-def collision(sprite, dx=0, dy=0):
-    sprite.pos[0] += dx
-    sprite.pos[1] += dy
-    sprite.rect.x = sprite.pos[0] * TILESIZE
-    sprite.rect.y = sprite.pos[1] * TILESIZE
-    collide = pygame.sprite.spritecollide(sprite, sprite.game.obstacle, False)
+def collision(sprite_1, sprite_2, dx=0, dy=0):
+    sprite_1.pos[0] += dx
+    sprite_1.pos[1] += dy
+    sprite_1.rect.x = sprite_1.pos[0] * TILESIZE
+    sprite_1.rect.y = sprite_1.pos[1] * TILESIZE
+    collide = pygame.sprite.spritecollide(sprite_1, sprite_2, False)
 
-    sprite.pos[0] -= dx
-    sprite.pos[1] -= dy
-    sprite.rect.x = sprite.pos[0] * TILESIZE
-    sprite.rect.y = sprite.pos[1] * TILESIZE
+    sprite_1.pos[0] -= dx
+    sprite_1.pos[1] -= dy
+    sprite_1.rect.x = sprite_1.pos[0] * TILESIZE
+    sprite_1.rect.y = sprite_1.pos[1] * TILESIZE
     return collide
 
 
@@ -290,7 +290,7 @@ class Game:
             for i in range(-mov, mov+1):
                 for j in range(-mov, mov+1):
                     if abs(i) + abs(j) <= mov:
-                        if not collision(self.cursor.selection, j, i):
+                        if not collision(self.cursor.selection, self.obstacle, j, i):
                             pygame.draw.rect(self.gameDisplay, BLUE, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
 
         # Grid
@@ -338,11 +338,16 @@ class Cursor(pygame.sprite.Sprite):
         self.selection = pygame.sprite.Sprite()
 
     def move(self, dx=0, dy=0):
-        if not collision(self, dx, dy):
+        if not collision(self, self.game.obstacle, dx, dy):
+            if self.selection.alive() and abs(self.pos[0] + dx - self.selection.pos[0]) + abs(self.pos[1] + dy - self.selection.pos[1])  > self.selection.sprite.movement:
+                dx = 0
+                dy = 0
+
             self.pos[0] += dx
             self.pos[1] += dy
             self.rect.x = self.pos[0] * TILESIZE
             self.rect.y = self.pos[1] * TILESIZE
+
 
     def action(self):
         if not self.selection.alive():
