@@ -22,9 +22,6 @@ TILESIZE = 32
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 
-PLAYER_IMG = "character_pipoya_male_01_2.png"
-PLAYER_MOVEMENT = 2
-
 # Layer Settings
 LAYER_CURSOR = 3
 LAYER_PLAYER = 2
@@ -227,8 +224,7 @@ class Game:
             if tile_object.name == "cursor":
                 self.cursor = Cursor(self, obj_center.x, obj_center.y)
             if tile_object.name == "player":
-                self.player = Player(self, obj_center.x, obj_center.y)
-
+                self.player = Character(self, obj_center.x, obj_center.y, self.player_img, "Player", PLAYER_WEAPON, PLAYER_MOVEMENT)
 
     def run(self):
         self.playing = True
@@ -428,8 +424,20 @@ class Obstacle(pygame.sprite.Sprite):
 
 
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, game, x, y):
+class Weapon():
+    def __init__(self, attack, hit, critical, range, weight):
+        self.attack = attack
+        self.hit = hit
+        self.critical = critical
+        self.range = range
+        self.weight = weight
+
+class Iron_Sword(Weapon):
+    def __init__(self):
+        Weapon.__init__(self, 5, 100, 0, 1, 2)
+
+class Character(pygame.sprite.Sprite):
+    def __init__(self, game, x, y, image, name, weapon, movement):
         # Setup
         self.game = game
         self.groups = self.game.all_sprites, self.game.characters
@@ -437,7 +445,9 @@ class Player(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, self.groups)
 
         # Settings
-        self.movement = PLAYER_MOVEMENT
+        self.name = name
+        self.weapon = weapon
+        self.movement = movement
 
         # Position
         self.pos = [int(x / TILESIZE), int(y / TILESIZE)]
@@ -445,7 +455,7 @@ class Player(pygame.sprite.Sprite):
         # Surface
         self.base_index = 1
         self.index = self.base_index
-        self.images = self.game.player_img
+        self.images = image
         self.images_bottom = self.images[0]
         self.images_left = self.images[1]
         self.images_right = self.images[2]
@@ -467,6 +477,16 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.x = self.pos[0] * TILESIZE
         self.rect.y = self.pos[1] * TILESIZE
+
+    def attack(self):
+        pass
+
+
+
+# Characters Settings
+PLAYER_IMG = "character_pipoya_male_01_2.png"
+PLAYER_WEAPON = Iron_Sword()
+PLAYER_MOVEMENT = 3
 
 g = Game()
 while True:
