@@ -187,6 +187,7 @@ class Game:
 
         # Characters
         self.player_img = load_tile_table(path.join(graphics_folder, PLAYER_IMG), 32, 32)
+        self.skeleton_img = load_tile_table(path.join(graphics_folder, SKELETON_IMG), 32, 32)
 
         # Music
         self.music = "music_aaron_krogh_310_world_map.mp3"
@@ -225,6 +226,8 @@ class Game:
                 self.cursor = Cursor(self, obj_center.x, obj_center.y)
             if tile_object.name == "player":
                 self.player = Character(self, obj_center.x, obj_center.y, self.player_img, "Player", PLAYER_WEAPON, PLAYER_MOVEMENT)
+            if tile_object.name == "skeleton":
+                self.skeleton = Character(self, obj_center.x, obj_center.y, self.skeleton_img, "Skeleton", SKELETON_WEAPON, SKELETON_MOVEMENT)
 
     def run(self):
         self.playing = True
@@ -335,11 +338,11 @@ class Cursor(pygame.sprite.Sprite):
 
         # Action
         self.selection = pygame.sprite.Sprite()
-        self.selection_mov = [ [] ]
+        self.selection_mov = [[]]
 
     def move(self, dx=0, dy=0):
         if not collision(self, self.game.obstacle, dx, dy):
-            if self.selection.alive() and abs(self.pos[0] + dx - self.selection.pos[0]) + abs(self.pos[1] + dy - self.selection.pos[1])  > self.selection.sprite.movement:
+            if self.selection.alive() and abs(self.pos[0] + dx - self.selection.pos[0]) + abs(self.pos[1] + dy - self.selection.pos[1]) > self.selection.sprite.movement:
                 dx = dy = 0
             self.pos[0] += dx
             self.pos[1] += dy
@@ -424,7 +427,7 @@ class Obstacle(pygame.sprite.Sprite):
 
 
 
-class Weapon():
+class Weapon:
     def __init__(self, attack, hit, critical, range, weight):
         self.attack = attack
         self.hit = hit
@@ -487,6 +490,10 @@ class Character(pygame.sprite.Sprite):
 PLAYER_IMG = "character_pipoya_male_01_2.png"
 PLAYER_WEAPON = Iron_Sword()
 PLAYER_MOVEMENT = 3
+
+SKELETON_IMG = "character_pipoya_enemy_04_1.png"
+SKELETON_WEAPON = Iron_Sword()
+SKELETON_MOVEMENT = 2
 
 g = Game()
 while True:
