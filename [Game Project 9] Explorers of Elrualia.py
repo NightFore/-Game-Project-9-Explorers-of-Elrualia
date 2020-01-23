@@ -286,11 +286,21 @@ class Game:
         if self.cursor.selection.alive():
             pos = self.cursor.selection.pos
             mov = self.cursor.selection.sprite.movement
+            rg = self.cursor.selection.sprite.range
             index_i = index_j = 0
             for i in range(-mov, mov+1):
                 for j in range(-mov, mov+1):
                     if self.cursor.selection_mov[index_i][index_j]:
                         pygame.draw.rect(self.gameDisplay, BLUE, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
+                    index_j += 1
+                index_i += 1
+                index_j = 0
+
+            index_i = index_j = 0
+            for i in range(-mov-rg, mov+rg+1):
+                for j in range(-mov-rg, mov+rg+1):
+                    if self.cursor.selection_atk[index_i][index_j]:
+                        pygame.draw.rect(self.gameDisplay, RED, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
                     index_j += 1
                 index_i += 1
                 index_j = 0
@@ -354,29 +364,28 @@ class Cursor(pygame.sprite.Sprite):
             for sprite in self.game.characters:
                 if sprite.pos == self.pos:
                     self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1], TILESIZE, TILESIZE)
-
                     mov = self.selection.sprite.movement
+                    rg = self.selection.sprite.range
                     self.selection_mov = [[False] * (mov*2+1) for i in range(mov*2+1)]
-                    index_i = index_j = 0
-                    for i in range(-mov, mov + 1):
-                        for j in range(-mov, mov + 1):
-                            if abs(i) + abs(j) <= mov:
-                                if not collision(self.selection, self.game.obstacle, j, i):
-                                    self.selection_mov[index_i][index_j] = True
-                            index_j += 1
-                        index_i += 1
-                        index_j = 0
+                    self.selection_atk = [[False] * ((mov+rg)*2+1) for i in range((mov+rg)*2+1)]
 
-                    for i in range(2*mov+1):
-                        for j in range(2*mov+1):
-                            if self.selection_mov[i][j]:
-                                reach = False
-                                for x in range(-1, 1+1):
-                                    for y in range(-1, 1+1):
-                                        if abs(x) + abs(y) == 1 and 0 < i+x < 2*mov+1 and 0 < j+y < 2*mov+1:
-                                            if self.selection_mov[i+x][j+y]:
-                                                reach = True
-                                self.selection_mov[i][j] = reach
+                    mov_i = mov_j = -rg
+                    rg_i = rg_j = 0
+                    for i in range(-(mov+rg), (mov+rg)+1):
+                        for j in range(-(mov+rg), (mov+rg)+1):
+                            if abs(i) + abs(j) <= mov and abs(i) <= mov and abs(j) <= mov:
+                                if not collision(self.selection, self.game.obstacle, j, i):
+                                    self.selection_mov[mov_i][mov_j] = True
+                            elif abs(i) + abs(j) <= (mov+rg):
+                                self.selection_atk[rg_i][rg_j] = True
+                            mov_j += 1
+                            rg_j += 1
+                        mov_i += 1
+                        rg_i += 1
+                        mov_j = -rg
+                        rg_j = 0
+
+                    reachable(self.selection_mov, mov, mov, 1)
 
 
         else:
@@ -387,7 +396,17 @@ class Cursor(pygame.sprite.Sprite):
     def update(self):
         pass
 
-
+def reachable(list, i_loop, j_loop, rg):
+    for i in range(2*i_loop+1):
+        for j in range(2*j_loop+1):
+            if list[i][j]:
+                reach = False
+                for x in range(-rg, rg+1):
+                    for y in range(-rg, rg+1):
+                        if abs(x) + abs(y) == rg and 0 < i+x < 2*i_loop+1 and 0 < j+y < 2*j_loop+1:
+                            if list[i+x][j+y]:
+                                reach = True
+                list[i][j] = reach
 
 class Selection(pygame.sprite.Sprite):
     def __init__(self, game, sprite, x, y, w, h):
@@ -451,6 +470,8 @@ class Character(pygame.sprite.Sprite):
         self.name = name
         self.weapon = weapon
         self.movement = movement
+
+        self.range = self.weapon.range
 
         # Position
         self.pos = [int(x / TILESIZE), int(y / TILESIZE)]
