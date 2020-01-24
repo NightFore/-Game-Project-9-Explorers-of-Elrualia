@@ -369,25 +369,26 @@ class Cursor(pygame.sprite.Sprite):
                     self.selection_mov = [[False] * (mov*2+1) for i in range(mov*2+1)]
                     self.selection_atk = [[False] * ((mov+rg)*2+1) for i in range((mov+rg)*2+1)]
 
-                    mov_i = mov_j = -rg
-                    rg_i = rg_j = 0
-                    for i in range(-(mov+rg), (mov+rg)+1):
-                        for j in range(-(mov+rg), (mov+rg)+1):
-                            if abs(i) + abs(j) <= mov and abs(i) <= mov and abs(j) <= mov:
-                                if not collision(self.selection, self.game.obstacle, j, i):
-                                    self.selection_mov[mov_i][mov_j] = True
-                            elif abs(i) + abs(j) <= (mov+rg):
-                                self.selection_atk[rg_i][rg_j] = True
-                            mov_j += 1
-                            rg_j += 1
-                        mov_i += 1
-                        rg_i += 1
-                        mov_j = -rg
-                        rg_j = 0
-
+                    # Selection Movement Range Grid
+                    for i in range(2*mov+1):
+                        for j in range(2*mov+1):
+                            if abs(i-mov) + abs(j-mov) <= mov:
+                                if not collision(self.selection, self.game.obstacle, j-mov, i-mov):
+                                    self.selection_mov[i][j] = True
                     reachable(self.selection_mov, mov, mov, 1)
 
-
+                    # Selection Attack Range Grid
+                    for i in range(2*mov+1):
+                        for j in range(2*mov+1):
+                            if self.selection_mov[i][j]:
+                                for x in range(-rg, rg+1):
+                                    for y in range(-rg, rg+1):
+                                        if abs(x) + abs(y) == rg:
+                                            if 0 <= i+x < 2*mov+1 and 0 <= j+y < 2*mov+1:
+                                                if not self.selection_mov[i+x][j]:
+                                                    self.selection_atk[i+x+1][j+y+1] = True
+                                            else:
+                                                self.selection_atk[i+x+1][j+y+1] = True
         else:
             self.selection.sprite.pos[0] = self.pos[0]
             self.selection.sprite.pos[1] = self.pos[1]
