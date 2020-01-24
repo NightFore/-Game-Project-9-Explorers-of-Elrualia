@@ -385,7 +385,7 @@ class Cursor(pygame.sprite.Sprite):
                                     for y in range(-rg, rg+1):
                                         if abs(x) + abs(y) == rg:
                                             if 0 <= i+x < 2*mov+1 and 0 <= j+y < 2*mov+1:
-                                                if not self.selection_mov[i+x][j]:
+                                                if not self.selection_mov[i+x][j+y]:
                                                     self.selection_atk[i+x+1][j+y+1] = True
                                             else:
                                                 self.selection_atk[i+x+1][j+y+1] = True
