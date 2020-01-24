@@ -209,6 +209,8 @@ class Game:
 
     def new(self):
         self.debug_obstacle = False
+        self.debug_atk = False
+
         self.paused = False
         self.camera = Camera(self.map.width, self.map.height, WIDTH, HEIGHT)
         self.all_sprites = pygame.sprite.LayeredUpdates()
@@ -265,6 +267,12 @@ class Game:
 
                 if event.key == pygame.K_j:
                     self.debug_obstacle = not self.debug_obstacle
+                if event.key == pygame.K_r:
+                    if not self.debug_atk:
+                        self.player.range = 2
+                    else:
+                        self.player.range = 1
+                    self.debug_atk = not self.debug_atk
 
                 if event.key == pygame.K_h:
                     self.cursor.action()
@@ -286,7 +294,7 @@ class Game:
         if self.cursor.selection.alive():
             pos = self.cursor.selection.pos
             mov = self.cursor.selection.sprite.movement
-            rg = self.cursor.selection.sprite.range
+            atk = self.cursor.selection.sprite.range
             index_i = index_j = 0
             for i in range(-mov, mov+1):
                 for j in range(-mov, mov+1):
@@ -297,8 +305,8 @@ class Game:
                 index_j = 0
 
             index_i = index_j = 0
-            for i in range(-mov-rg, mov+rg+1):
-                for j in range(-mov-rg, mov+rg+1):
+            for i in range(-mov-atk, mov+atk+1):
+                for j in range(-mov-atk, mov+atk+1):
                     if self.cursor.selection_atk[index_i][index_j]:
                         pygame.draw.rect(self.gameDisplay, RED, self.camera.apply_rect(pygame.Rect(TILESIZE * (j + pos[0]), TILESIZE * (i + pos[1]), TILESIZE, TILESIZE)))
                     index_j += 1
@@ -365,9 +373,9 @@ class Cursor(pygame.sprite.Sprite):
                 if sprite.pos == self.pos:
                     self.selection = Selection(self.game, sprite, self.pos[0], self.pos[1], TILESIZE, TILESIZE)
                     mov = self.selection.sprite.movement
-                    rg = self.selection.sprite.range
+                    atk = self.selection.sprite.range
                     self.selection_mov = [[False] * (mov*2+1) for i in range(mov*2+1)]
-                    self.selection_atk = [[False] * ((mov+rg)*2+1) for i in range((mov+rg)*2+1)]
+                    self.selection_atk = [[False] * ((mov+atk)*2+1) for i in range((mov+atk)*2+1)]
 
                     # Selection Movement Range Grid
                     for i in range(2*mov+1):
@@ -381,14 +389,14 @@ class Cursor(pygame.sprite.Sprite):
                     for i in range(2*mov+1):
                         for j in range(2*mov+1):
                             if self.selection_mov[i][j]:
-                                for x in range(-rg, rg+1):
-                                    for y in range(-rg, rg+1):
-                                        if abs(x) + abs(y) == rg:
+                                for x in range(-atk, atk+1):
+                                    for y in range(-atk, atk+1):
+                                        if abs(x) + abs(y) == atk:
                                             if 0 <= i+x < 2*mov+1 and 0 <= j+y < 2*mov+1:
                                                 if not self.selection_mov[i+x][j+y]:
-                                                    self.selection_atk[i+x+1][j+y+1] = True
+                                                    self.selection_atk[i+x+atk][j+y+atk] = True
                                             else:
-                                                self.selection_atk[i+x+1][j+y+1] = True
+                                                self.selection_atk[i+x+atk][j+y+atk] = True
         else:
             self.selection.sprite.pos[0] = self.pos[0]
             self.selection.sprite.pos[1] = self.pos[1]
