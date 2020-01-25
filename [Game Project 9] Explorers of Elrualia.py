@@ -360,8 +360,20 @@ class Cursor(pygame.sprite.Sprite):
 
     def move(self, dx=0, dy=0):
         if not collision(self, self.game.obstacle, dx, dy):
-            if self.selection.alive() and abs(self.pos[0] + dx - self.selection.pos[0]) + abs(self.pos[1] + dy - self.selection.pos[1]) > self.selection.sprite.movement:
-                dx = dy = 0
+            if self.selection.alive():
+                x_pos = self.selection.sprite.movement + self.pos[0] - self.selection.sprite.pos[0] + dx
+                y_pos = self.selection.sprite.movement + self.pos[1] - self.selection.sprite.pos[1] + dy
+                mov = self.selection.sprite.movement
+                atk = self.selection.sprite.range
+
+                mov_check = atk_check = False
+                if 0 <= x_pos < 2*mov+1 and 0 <= y_pos < 2*mov+1:
+                    mov_check = self.selection_mov[y_pos][x_pos]
+                if 0 <= x_pos+atk < 2*(mov+atk)+1 and 0 <= y_pos+atk < 2*(mov+atk)+1:
+                    atk_check = self.selection_atk[y_pos+atk][x_pos+atk]
+                if not mov_check and not atk_check:
+                    dx = dy = 0
+
             self.pos[0] += dx
             self.pos[1] += dy
             self.rect.x = self.pos[0] * TILESIZE
@@ -381,8 +393,9 @@ class Cursor(pygame.sprite.Sprite):
                     for i in range(2*mov+1):
                         for j in range(2*mov+1):
                             if abs(i-mov) + abs(j-mov) <= mov:
-                                if not collision(self.selection, self.game.obstacle, j-mov, i-mov):
+                                if not collision(self.selection, self.game.obstacle, j-mov, i-mov) and not collision(self.selection, self.game.characters, j-mov, i-mov):
                                     self.selection_mov[i][j] = True
+                    self.selection_mov[mov][mov] = True
                     reachable(self.selection_mov, mov, mov, 1)
 
                     # Selection Attack Range Grid
@@ -392,11 +405,12 @@ class Cursor(pygame.sprite.Sprite):
                                 for x in range(-atk, atk+1):
                                     for y in range(-atk, atk+1):
                                         if abs(x) + abs(y) == atk:
-                                            if 0 <= i+x < 2*mov+1 and 0 <= j+y < 2*mov+1:
-                                                if not self.selection_mov[i+x][j+y]:
+                                            if not collision(self.selection, self.game.obstacle, j-mov+y, i-mov+x):
+                                                if 0 <= i+x < 2*mov+1 and 0 <= j+y < 2*mov+1:
+                                                    if not self.selection_mov[i+x][j+y]:
+                                                        self.selection_atk[i+x+atk][j+y+atk] = True
+                                                else:
                                                     self.selection_atk[i+x+atk][j+y+atk] = True
-                                            else:
-                                                self.selection_atk[i+x+atk][j+y+atk] = True
         else:
             self.selection.sprite.pos[0] = self.pos[0]
             self.selection.sprite.pos[1] = self.pos[1]
